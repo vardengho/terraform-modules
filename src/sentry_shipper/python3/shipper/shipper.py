@@ -121,6 +121,29 @@ class SentryShipper(object):
         if project:
             attributes['project'] = {'value': project, 'type': 'string'}
 
+        # Exception (stack trace)
+        exception = log.get('Exception', '')
+        if exception:
+            attributes['exception'] = {'value': exception, 'type': 'string'}
+
+        # State (structured log parameters like TREATMENT, CUSTOMER, ERROR)
+        state = log.get('State', {})
+        if isinstance(state, dict):
+            for key, value in state.items():
+                if key in ('Message', '{OriginalFormat}'):
+                    continue
+                attributes['state.{}'.format(key)] = {'value': str(value), 'type': 'string'}
+
+        # Scopes (SpanId, ParentId, RequestPath, ConnectionId)
+        scopes = log.get('Scopes', [])
+        if isinstance(scopes, list):
+            for scope in scopes:
+                if isinstance(scope, dict):
+                    for key, value in scope.items():
+                        if key == 'Message' or key == 'TraceId':
+                            continue
+                        attributes['scope.{}'.format(key)] = {'value': str(value), 'type': 'string'}
+
         event_id = log.get('EventId', '')
         if event_id:
             if isinstance(event_id, dict):
