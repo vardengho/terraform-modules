@@ -81,6 +81,13 @@ def _parse_to_json(log):
 def _parse_cloudwatch_log(log, additional_data):
     # type: (dict, dict) -> bool
 
+    # Drop non-JSON messages. Structured logs from .NET AddJsonConsole always
+    # start with '{'. Anything else is raw runtime output (e.g. unhandled
+    # exception stack traces dumped to stderr) which is already captured in the
+    # structured log's Exception field.
+    if not log['message'].strip().startswith('{'):
+        return False
+
     # Drop information and debug logs
     is_dropped_log = '"LogLevel":"Information"' in log['message'] or '"LogLevel":"Debug"' in log['message']
     if is_dropped_log:
